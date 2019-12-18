@@ -16,39 +16,33 @@ import os
 
 def get_pdf_address(pageNum):
     url = 'http://www.cninfo.com.cn/new/hisAnnouncement/query'
-    headers = {'Accept': 'application/json, text/javascript, */*; q=0.01',
-               'Accept-Encoding': 'gzip, deflate',
-               'Accept-Language': 'zh-CN,zh;q=0.9',
-               'Connection': 'keep-alive',
-               'Content-Length': '152',
-               'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-               'Cookie': 'noticeTabClicks=%7B%22szse%22%3A1%2C%22sse%22%3A0%2C%22hot%22%3A0%2C%22myNotice%22%3A0%7D; tradeTabClicks=%7B%22financing%20%22%3A0%2C%22restricted%20%22%3A0%2C%22blocktrade%22%3A0%2C%22myMarket%22%3A0%2C%22financing%22%3Anull%7D; JSESSIONID=6E475884D14E0A98A0CE54A01507880B; insert_cookie=37836164; _sp_ses.2141=*; UC-JSESSIONID=37B926C49EFC03B2EA1065DB1A478938; _sp_id.2141=b56f8fed-a589-4ae6-be0c-5707d6affe6c.1574335602.1.1574337431.1574335602.3a5381bd-7ca6-4aab-b71a-f27b92ce1a0f',
-               'Host': 'www.cninfo.com.cn',
-               'Origin': 'http://www.cninfo.com.cn',
-               'Referer': 'http://www.cninfo.com.cn/new/commonUrl?url=disclosure/list/notice-sse',
-               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3732.400 QQBrowser/10.5.3819.400',
-               'X-Requested-With': 'XMLHttpRequest'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3741.400 QQBrowser/10.5.3863.400'}
     pageNum = int(pageNum)
     payload = {'pageNum': pageNum,
                'pageSize': '30',
                'tabName': 'fulltext',        ##爬取PDF全文
-               'column': 'sse',               ##沪市此处参数为sse 深市szse
+               'column': 'szse',               ##沪市此处参数为sse 深市szse
                'stock': '',
                'searchkey': '',                ##支持任意关键词搜索，如想要爬取社会责任报告，则搜索“社会责任”，项目自动爬取标题带社会责任的全部报告
                'secid': '',
-               'plate': 'sh',                   ##想要爬取沪市上市公司报告就填sh 深市填sz
-               'category': 'category_ndbg_szsh',  ##此处默认爬取年报 category_ndbg_szsh 如使用关键词搜索功能，该项为空
+               'plate': 'szmb',                   ##想要爬取沪市上市公司报告就填sh 深市填sz
+               'category': '',  ##此处默认爬取年报 category_ndbg_szsh 如使用关键词搜索功能，该项为空
                'trade': '',
-               'seDate': '2000-01-01 ~ 2019-11-22'}    #支持设定爬取时间范围，直接在此处修改日期即可       
+               'seDate': '2019-12-18~2019-12-18',            #支持设定爬取时间范围，直接在此处修改日期即可 
+               'sortName':'', 
+               'sortType': '',
+               'isHLtitle': 'true'}         
     response = requests.post(url,headers=headers,data=payload)
+    print()
     result = response.json()
+    #print(result)
     return result
 
 
 pdf_infor= pd.DataFrame(columns =['secCode','secName','url','title'])  #创建一个DataFrame储存爬取信息
 count = 0
 url_head ='http://static.cninfo.com.cn/'
-for i in range(1,2):                                ##此处设置爬取页数
+for i in range(2,3):                                ##此处设置爬取页数
     print("爬取报告下载地址第{}页".format(i))
     result = get_pdf_address(i)
     num = len(result['announcements'])
@@ -65,14 +59,14 @@ for i in range(1,2):                                ##此处设置爬取页数
 
 
 pdf_infor['Year'] = pdf_infor['title'].str.extract('([0-9]{4})')  # 提取title中字符串获取年份
-file_path= "F:\\annual report\\"# 这里设置存放路径
+file_path= 'H:\\spider\\juchao\\report\\'  # 这里设置存放路径
 headers ={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3732.400 QQBrowser/10.5.3819.400'}
     
 for each in range(pdf_infor.shape[0]):
     Stkcd = pdf_infor.at[each,'secCode']
-    firm_name = pdf_infor.at[each,'secName'].replace("*","")
+    firm_name = pdf_infor.at[each,'title'].replace("*","")
     Year = pdf_infor.at[each,'Year']
-    print("开始下载{}，股票代码{}的{}年报".format(firm_name,Stkcd,Year))
+    print("开始下载{}，股票代码{}".format(firm_name,Stkcd))
     file_name = "{}{}{}.pdf".format(Stkcd,firm_name,Year)
     file_full_name = os.path.join(file_path,file_name)
     # print(file_full_name)
@@ -83,4 +77,4 @@ for each in range(pdf_infor.shape[0]):
             if chunk:
                 fp.write(chunk)
     time.sleep(random.uniform(1,2)) # 控制访问速度
-    print("===================下载完成==========================")
+    print("===================下载完成=========================")
